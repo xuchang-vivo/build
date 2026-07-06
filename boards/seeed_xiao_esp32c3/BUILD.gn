@@ -58,7 +58,10 @@ blueos_board("seeed_xiao_esp32c3") {
       "-Clink-arg=-Wl,-z,norelro",
     ]
   }
-  default = [ "//apps/shell:shell" ]
+  default = [
+    "//apps/shell:shell",
+    "//apps/example/wifi:wifi_example",
+  ]
   _check_all = check_all_on_virtual_board + clippy_all_on_virtual_board
   check_all = filter_exclude(_check_all,
                              [
@@ -66,6 +69,5 @@ blueos_board("seeed_xiao_esp32c3") {
                                "//kernel/loader*",
                              ])
 
-  check_all +=
-      [ "//kernel/adapter/esp_radio_sys:esp_radio_sys_unittest_runner" ]
+  check_all += [ "//kernel/adapter/esp_radio_sys:run_esp_radio_sys_unittest" ]
 }
