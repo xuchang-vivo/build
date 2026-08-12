@@ -12,17 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import("//build/default_targets.gni")
 import("//build/templates/board.gni")
 
-blueos_board("none") {
+blueos_board("rk3568") {
   kernel_config = {
+    cflags = [ "--static" ]
+    ldflags = [
+      "-nostartfiles",
+      "-Wl,-gc-sections",
+    ]
+    rustflags = [
+      "--cfg",
+      "target_board=\"rk3568\"",
+      "-Zemit-stack-sizes",
+      "-Crelocation-model=static",
+      "-Clinker=aarch64-none-elf-gcc",
+    ]
+    foreach(item, ldflags) {
+      rustflags += [ "-Clink-arg=${item}" ]
+    }
   }
+
   app_config = {
+    rustflags = [
+      "--cfg",
+      "target_board=\"rk3568\"",
+      "-Clinker=aarch64-none-elf-gcc",
+    ]
   }
-  default = []
-  check_all = [
-    "//build/tests",
-    "//kernel/infra:check_infra",
-    "//kernel/infra:check_infra_by_clippy",
-  ]
+
+  default = [ "//apps/shell" ]
+  check_all = []
 }

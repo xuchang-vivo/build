@@ -43,6 +43,11 @@ BOARDS = [
     'qemu_riscv32',
     'qemu_riscv64',
     'qemu_virt64_aarch64',
+    'gd32vw553_eval',
+    'rk3568',
+    'gd32e507_eval',
+    'seeed_xiao_esp32c3',
+    'raspberry_pico2_cortexm',
 ]
 BUILD_TYPES = ['release', 'debug']
 DIRECT_SYSCALL_HANDLER_FLAGS = [True, False]
@@ -86,6 +91,8 @@ class Runner(object):
         basename = f'{self.config.board}.{self.config.build_type}'
         if self.config.direct_syscall_handler:
             basename += '.dsc'
+        else:
+            basename += '.swi'
         return os.path.join('out', basename)
 
     def make_gn_args_str(self):
@@ -173,6 +180,10 @@ def main():
         help=
         'Specify board to test. If not provided, will test all types in BOARDS'
     )
+    parser.add_argument('--setup_only',
+                        action='store_true',
+                        default=False,
+                        help='Setup output directories of boards only')
     parser.add_argument('repo_paths',
                         nargs='*',
                         help='Repository paths to check')
@@ -195,6 +206,12 @@ def main():
                                          DIRECT_SYSCALL_HANDLER_FLAGS):
             config = Config().set_build_type(profile[0]).set_board(
                 profile[1]).set_direct_syscall_handler(profile[2])
+            if args.setup_only:
+                rc = Runner(config).run_gn_gen()
+                if rc != 0:
+                    LOGGER.error(f'Failed to setup with {profile}')
+                    return rc
+                continue
             rc = Runner(config).run()
             if rc != 0:
                 LOGGER.error(f'Failed to run with {profile}')

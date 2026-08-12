@@ -14,16 +14,27 @@
 
 import("//build/default_targets.gni")
 import("//build/templates/board.gni")
+import("//build/templates/linker_script.gni")
 
 _sysroot = exec_script("//build/scripts/get_sysroot.py",
-                       [ "arm-none-eabi-gcc" ],
+                       [ "arm-none-eabi-cpp" ],
                        "string")
+
+generate_linker_script("default_linker_script") {
+  preprocessor = "arm-none-eabi-gcc"
+  template = "//kernel/arch/arm/cortex_m/link.x"
+  output = "${root_gen_dir}/link.pre.ld"
+}
 
 blueos_board("qemu_mps3_an547") {
   kernel_config = {
-    _linker_script = "//kernel/kernel/src/boards/${board}/link.x"
     cflags = [
       "--target=thumbv8m.main-none-eabihf",
+      "-mthumb",
+      "-mcpu=cortex-m55",
+      "-march=armv8.1-m.main+mve.fp+fp.dp",
+      "-mfpu=fpv5-d16",
+      "-mfloat-abi=hard",
       "--static",
       "-fshort-enums",
       "-fsigned-char",
@@ -32,9 +43,14 @@ blueos_board("qemu_mps3_an547") {
       "${_sysroot}/include",
     ]
     ldflags = [
+      "-mthumb",
+      "-mcpu=cortex-m55",
+      "-march=armv8.1-m.main+mve.fp+fp.dp",
+      "-mfpu=fpv5-d16",
+      "-mfloat-abi=hard",
       "-nostartfiles",
       "-Wl,-gc-sections",
-      "-Wl,-T" + rebase_path(_linker_script),
+      "-Wl,-z,norelro",
     ]
     rustflags = [
       "--cfg",
@@ -54,9 +70,14 @@ blueos_board("qemu_mps3_an547") {
     foreach(item, ldflags) {
       rustflags += [ "-Clink-arg=${item}" ]
     }
-    inputs = [ _linker_script ]
   }
   app_config = {
+    rustflags = [
+      "-Clinker=clang",
+      "-Clink-arg=-fuse-ld=lld",
+      "-Clink-arg=--target=thumbv8m.main-none-eabihf",
+      "-Clink-arg=-Wl,-z,norelro",
+    ]
   }
   default = [
     "//apps/example:check_apps",
@@ -64,4 +85,8 @@ blueos_board("qemu_mps3_an547") {
   ]
   check_all = check_all_on_virtual_board + clippy_all_on_virtual_board +
               [ "//apps/example:check_apps" ]
+
+  # FIXME: Enable thread_metric on this board. Currently, VFS is disabled on
+  # this board, so that `printf` in libc is unavailable.  However, thread_metric
+  # requires `printf`.
 }

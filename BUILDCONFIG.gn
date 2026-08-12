@@ -25,6 +25,11 @@ declare_args() {
   board = "none"
 }
 
+declare_args() {
+  defconfig_files =
+      rebase_path("//kernel/kconfig/config/${board}/${build_type}/defconfig")
+}
+
 # Define boolean flags for convenience.
 coverage = "${build_type}" == "coverage"
 profile = "${build_type}" == "profile"
@@ -40,25 +45,37 @@ assert(defined(board_default_toolchain))
 set_default_toolchain(board_default_toolchain)
 set_defaults("source_set") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("static_library") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("shared_library") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("executable") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("rust_library") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("rust_proc_macro") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("build_rust") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }
 set_defaults("bindgen") {
   configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
+}
+set_defaults("cargo_crate") {
+  configs = [ "//build/config:${build_type}" ]
+  public_configs = [ "//build/config:${build_type}" ]
 }

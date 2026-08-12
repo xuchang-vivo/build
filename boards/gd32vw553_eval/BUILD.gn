@@ -14,22 +14,14 @@
 
 import("//build/default_targets.gni")
 import("//build/templates/board.gni")
-import("//build/templates/linker_script.gni")
 
 _sysroot = exec_script("//build/scripts/get_sysroot.py",
-                       [ "arm-none-eabi-gcc" ],
+                       [ "riscv-none-elf-gcc" ],
                        "string")
 
-generate_linker_script("default_linker_script") {
-  preprocessor = "arm-none-eabi-cpp"
-  template = "//kernel/arch/arm/cortex_m/link.x"
-  output = "${root_gen_dir}/link.pre.ld"
-}
-
-blueos_board("raspberry_pico2_cortexm") {
+blueos_board("gd32vw553_eval") {
   kernel_config = {
     cflags = [
-      "--target=thumbv8m.main-none-eabihf",
       "--static",
       "-fshort-enums",
       "-fsigned-char",
@@ -40,41 +32,39 @@ blueos_board("raspberry_pico2_cortexm") {
     ldflags = [
       "-nostartfiles",
       "-Wl,-gc-sections",
+      "-Wl,-z,norelro",
     ]
     rustflags = [
-      "-Ctarget-cpu=cortex-m33",
       "--cfg",
-      "target_board=\"raspberry_pico2_cortexm\"",
-      "--cfg",
-      "cortex_m",
-      "--cfg",
-      "armv8m",
-      "--cfg",
-      "armv8m_main",
-      "--cfg",
-      "has_fpu",
+      "target_board=\"gd32vw553_eval\"",
       "-Zemit-stack-sizes",
       "-Crelocation-model=static",
-      "-Clinker=arm-none-eabi-gcc",
+      "-Clinker=riscv-none-elf-gcc",
     ]
-
-    if (use_bme280) {
-      rustflags += [
-        "--cfg",
-        "use_bme280",
-      ]
-    }
-
     foreach(item, ldflags) {
       rustflags += [ "-Clink-arg=${item}" ]
     }
   }
+
   app_config = {
+    rustflags = [
+      "--cfg",
+      "target_board=\"gd32vw553_eval\"",
+      "-Clinker=clang",
+      "-Clink-arg=-fuse-ld=lld",
+      "-Clink-arg=--target=riscv32",
+      "-Clink-arg=-march=rv32",
+      "-Clink-arg=-mabi=ilp32",
+      "-Clink-arg=-Wl,-z,norelro",
+    ]
   }
   default = [
     "//apps/shell",
     "//apps/example/blinky:blinky_example",
-    "//kernel/adapter/thread_metric:test_images",
   ]
-  check_all = []
+  check_all = [
+    "//kernel/kernel:check_kernel_by_clippy",
+    "//librs:check_librs_by_clippy",
+    "//kernel/rsrt:check_rsrt_by_clippy",
+  ]
 }

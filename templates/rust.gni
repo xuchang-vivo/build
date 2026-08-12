@@ -41,8 +41,12 @@ template("build_rust") {
                            "crate_type",
                            "testonly",
                            "public_deps",
+                           "aliased_deps",
                          ],
-                         [ "configs" ])
+                         [
+                           "configs",
+                           "public_configs",
+                         ])
 
   crate_name = target_name
   if (defined(invoker.crate_name)) {
@@ -56,6 +60,10 @@ template("build_rust") {
   if (defined(rustflags)) {
   } else {
     rustflags = []
+  }
+
+  if (defined(board_rustflags)) {
+    rustflags += board_rustflags
   }
 
   if (defined(invoker.features)) {
@@ -91,11 +99,25 @@ template("build_rust") {
     rustflags += [ "-Cmetadata=${rustc_metadata}" ]
   }
 
+  if (defined(inputs)) {
+  } else {
+    inputs = []
+  }
+
+  if (defined(invoker.linker_script)) {
+    rustflags += [ "-Clink-arg=-Wl,-T" + rebase_path(invoker.linker_script) ]
+    inputs += [ invoker.linker_script ]
+  }
+
   if (defined(invoker.crate_type) && invoker.crate_type == "proc-macro") {
     rust_proc_macro(target_name) {
       configs = []
       if (defined(invoker.configs)) {
         configs += invoker.configs
+      }
+      public_configs = []
+      if (defined(invoker.public_configs)) {
+        public_configs += invoker.public_configs
       }
     }
   } else {
@@ -103,6 +125,10 @@ template("build_rust") {
       configs = []
       if (defined(invoker.configs)) {
         configs += invoker.configs
+      }
+      public_configs = []
+      if (defined(invoker.public_configs)) {
+        public_configs += invoker.public_configs
       }
     }
   }

@@ -12,38 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-thumbv7m_cflags = [
-  "-march=armv7em",
-  "-mcpu=cortex-m3",
-  "-mthumb",
+board_default_toolchain = "//build/toolchain:blueos_aarch64"
+default_linker_script = "//kernel/kernel/src/boards/${board}/link.x"
+qemu_exe = ""
+qemu_machine = ""
+rust_abi_target = "aarch64-unknown-none"
+qemu_extra_args = []
+qemu_net_args = []
+qemu_block_args = []
+board_deps = [
+  "//external/vendor/arm-gic-0.4.0:arm_gic",
+  "//external/vendor/flat_device_tree-3.1.1:flat_device_tree",
+  "//external/vendor/smoltcp-0.12.0:smoltcp",
+  "//external/vendor/virtio-drivers-0.11.0:virtio_drivers",
 ]
-
-thumbv8m_cflags = [
-  "-mthumb",
-  "-mfpu=fpv5-d16",
-  "-mfloat-abi=hard",
-]
-
-if (board == "qemu_mps3_an547") {
-  thumbv8m_cflags += [
-    "-mcpu=cortex-m55",
-    "-march=armv8.1-m.main+mve.fp+fp.dp",
-  ]
-} else if (board == "raspberry_pico2_cortexm") {
-  thumbv8m_cflags += [
-    "-mcpu=cortex-m33",
-    "-march=armv8.1-m.main+fp.dp",
-  ]
-}
-
-aarch64_cflags = [
-  "-march=armv8-a",
-  "-mtune=cortex-a53",
-]
-
-riscv64_cflags = [
-  "-mabi=lp64",
-  "-mcmodel=medany",
-]
-
-common_ldflags = [ "-Wl,--gc-sections" ]

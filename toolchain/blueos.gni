@@ -69,6 +69,91 @@ template("gen_probe_runner") {
   }
 }
 
+template("gen_esp32_qemu_runner") {
+  forward_variables_from(invoker, "*", [ "args" ])
+  assert(defined(elf))
+  assert(defined(chip))
+  assert(defined(bootloader))
+  assert(defined(partition_table))
+  assert(defined(qemu))
+  assert(defined(machine))
+  if (!defined(deps)) {
+    deps = [ elf ]
+  } else {
+    deps += [ elf ]
+  }
+  img_out_dir = get_label_info(elf, "root_out_dir")
+  img_name = get_label_info(elf, "name")
+  img_path = "${img_out_dir}/bin/${img_name}"
+  out_dir = "${img_out_dir}/bin"
+  esp32_img_action_name = "${target_name}_esp32_image"
+  esp32_img_path = "${out_dir}/${target_name}-esp32.img"
+  if (defined(semihosting)) {
+    semihosting = semihosting || coverage || profile
+  } else {
+    semihosting = coverage || profile
+  }
+  action("${esp32_img_action_name}") {
+    script = "//build/scripts/gen_esp32_image.py"
+    outputs = [ esp32_img_path ]
+    args = [
+      "build_image",
+      "--chip",
+      chip,
+      "--bootloader",
+      bootloader,
+      "--partition_table",
+      partition_table,
+      "--output",
+      rebase_path(esp32_img_path),
+      rebase_path(img_path),
+    ]
+  }
+
+  action(target_name) {
+    script = "//build/scripts/gen_esp32_qemu_runner.py"
+    inputs = get_target_outputs(":${esp32_img_action_name}")
+    deps += [ ":${esp32_img_action_name}" ]
+    outputs = [
+      "${out_dir}/${target_name}-qemu-dbg.sh",
+      "${out_dir}/${target_name}-qemu-test.sh",
+      "${out_dir}/${target_name}-qemu.sh",
+    ]
+    args = [
+      "--qemu",
+      qemu,
+      "--machine",
+      machine,
+      "--out_dir",
+      rebase_path(out_dir),
+      "--name",
+      target_name,
+      rebase_path(inputs[0]),
+    ]
+    if (semihosting == true) {
+      args += [ "--semihosting" ]
+    }
+    if (defined(qemu_args) && qemu_args != []) {
+      args += [
+        "--qemu_args",
+        string_join(" ", qemu_args),
+      ]
+    }
+    if (defined(block_args) && block_args != []) {
+      args += [
+        "--block_args",
+        string_join(" ", block_args),
+      ]
+    }
+    if (defined(net_args) && net_args != []) {
+      args += [
+        "--net_args",
+        string_join(" ", net_args),
+      ]
+    }
+  }
+}
+
 template("gen_qemu_runner") {
   forward_variables_from(invoker, "*", [ "args" ])
   assert(defined(img))
@@ -309,6 +394,52 @@ template("blueos_toolchain") {
         clippy_rspfile,
       ]
       default_output_dir = "{{root_out_dir}}/bin"
+    }
+
+    tool("rust_dylib") {
+      depfile = "{{target_out_dir}}/{{target_output_name}}.d"
+      mapfile = "{{target_out_dir}}/{{target_output_name}}.map"
+      clippy_rspfile = "{{target_out_dir}}/{{target_output_name}}.clippy_rsp"
+      outfile = "{{output_dir}}/lib{{target_output_name}}.so"
+
+      clippy_command = "{{rustenv}} ${clippy_driver} --crate-name {{crate_name}} --crate-type {{crate_type}} {{rustflags}} ${clippy_lint_flags} {{source}} {{externs}} {{rustdeps}} -o ${outfile}.clippy"
+
+      gen_clippy_rspfile_command =
+          " && echo '${clippy_command}' > ${clippy_rspfile}"
+
+      rustc_command = "{{rustenv}} ${rustc} --crate-name {{crate_name}} --crate-type {{crate_type}} --emit=dep-info=$depfile,link {{rustflags}} -o ${outfile} {{source}} {{externs}} {{rustdeps}} -Clink-arg=${link_map_opt}${mapfile}"
+
+      command = "${rustc_command} ${gen_clippy_rspfile_command}"
+      description = "RUST ${outfile}"
+      outputs = [
+        outfile,
+        mapfile,
+        clippy_rspfile,
+      ]
+      default_output_dir = "{{root_out_dir}}/lib"
+    }
+
+    tool("rust_cdylib") {
+      depfile = "{{target_out_dir}}/{{target_output_name}}.d"
+      mapfile = "{{target_out_dir}}/{{target_output_name}}.map"
+      clippy_rspfile = "{{target_out_dir}}/{{target_output_name}}.clippy_rsp"
+      outfile = "{{output_dir}}/lib{{target_output_name}}.so"
+
+      clippy_command = "{{rustenv}} ${clippy_driver} --crate-name {{crate_name}} --crate-type {{crate_type}} {{rustflags}} ${clippy_lint_flags} {{source}} {{externs}} {{rustdeps}} -o ${outfile}.clippy"
+
+      gen_clippy_rspfile_command =
+          " && echo '${clippy_command}' > ${clippy_rspfile}"
+
+      rustc_command = "{{rustenv}} ${rustc} --crate-name {{crate_name}} --crate-type {{crate_type}} --emit=dep-info=$depfile,link {{rustflags}} -o ${outfile} {{source}} {{externs}} {{rustdeps}} -Clink-arg=${link_map_opt}${mapfile}"
+
+      command = "${rustc_command} ${gen_clippy_rspfile_command}"
+      description = "RUST ${outfile}"
+      outputs = [
+        outfile,
+        mapfile,
+        clippy_rspfile,
+      ]
+      default_output_dir = "{{root_out_dir}}/lib"
     }
 
     tool("rust_staticlib") {

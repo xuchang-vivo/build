@@ -26,7 +26,7 @@ generate_linker_script("default_linker_script") {
   output = "${root_gen_dir}/link.pre.ld"
 }
 
-blueos_board("raspberry_pico2_cortexm") {
+blueos_board("gd32e507_eval") {
   kernel_config = {
     cflags = [
       "--target=thumbv8m.main-none-eabihf",
@@ -42,9 +42,8 @@ blueos_board("raspberry_pico2_cortexm") {
       "-Wl,-gc-sections",
     ]
     rustflags = [
-      "-Ctarget-cpu=cortex-m33",
       "--cfg",
-      "target_board=\"raspberry_pico2_cortexm\"",
+      "target_board=\"gd32e507_eval\"",
       "--cfg",
       "cortex_m",
       "--cfg",
@@ -57,24 +56,23 @@ blueos_board("raspberry_pico2_cortexm") {
       "-Crelocation-model=static",
       "-Clinker=arm-none-eabi-gcc",
     ]
-
-    if (use_bme280) {
-      rustflags += [
-        "--cfg",
-        "use_bme280",
-      ]
-    }
-
     foreach(item, ldflags) {
       rustflags += [ "-Clink-arg=${item}" ]
     }
   }
   app_config = {
   }
-  default = [
-    "//apps/shell",
-    "//apps/example/blinky:blinky_example",
-    "//kernel/adapter/thread_metric:test_images",
-  ]
-  check_all = []
+
+  if (debug) {
+    # FIXME: Disable apps in debug build temporarily,
+    # because of the size of firmware too big in debug mode.
+    default = [ "//apps/shell" ]
+  } else {
+    default = [
+      "//apps/shell",
+      "//apps/example/blinky:blinky_example",
+    ]
+  }
+
+  check_all = clippy_all_on_virtual_board
 }

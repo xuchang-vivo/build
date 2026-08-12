@@ -12,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-group("tests") {
-  testonly = true
-  deps = [
-    "test_c_dylib:foo",
-    "test_c_exe:foo",
-    "test_c_staticlib:foo",
-    "test_rust_bin_link_cxx_staticlib:foo",
-    "test_rust_bin_link_rlib:foo",
-    "test_rust_cdylib:foo_c",
-    "test_rust_dylib:foo_r",
-
-    # Link rust bin against a rust staticlib is tricky.
-    # We don't show a demo here.
-  ]
+if (current_toolchain == "//build/toolchain:blueos_thumbv7m" ||
+    current_toolchain == "//build/toolchain:blueos_thumbv8m") {
+  current_sysroot = exec_script("//build/scripts/get_sysroot.py",
+                                [ "arm-none-eabi-gcc" ],
+                                "string")
+} else if (current_toolchain == "//build/toolchain:blueos_riscv32imc" ||
+           current_toolchain == "//build/toolchain:blueos_riscv32imac") {
+  current_sysroot = exec_script("//build/scripts/get_sysroot.py",
+                                [ "riscv-none-elf-gcc" ],
+                                "string")
 }
