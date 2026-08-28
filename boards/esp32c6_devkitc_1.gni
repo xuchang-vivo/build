@@ -34,6 +34,9 @@ qemu_extra_args = []
 qemu_net_args = []
 qemu_block_args = []
 
+qemu_esp32_bootloader_bin = ""
+qemu_esp32_partition_table_bin = ""
+
 # WiFi/net driver dependencies. Structurally identical to seeed_xiao_esp32c3.gni,
 # only swapping the c3-specific crates for c6:
 #   esp-wifi-sys-esp32c3-0.2.0 → esp-wifi-sys-esp32c6-0.2.0
